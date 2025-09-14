@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proper Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom animations for a polished feel */
+        .btn-press {
+            transform: scale(0.98);
+            transition: transform 0.1s ease;
+        }
+        .display-slide {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center min-h-screen font-sans">
+    <div class="calculator bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-gray-200">
+        <!-- Expression Display (Optional, for history) -->
+        <div id="expression" class="text-gray-400 text-sm mb-2 h-4 overflow-hidden display-slide"></div>
+        
+        <!-- Main Display -->
+        <div id="display" class="bg-gray-50 border-2 border-gray-300 rounded-lg p-4 mb-4 h-16 flex items-center justify-end text-3xl font-mono font-bold text-gray-800 overflow-hidden display-slide" tabindex="0">0</div>
+        
+        <!-- Button Grid -->
+        <div class="grid grid-cols-4 gap-3">
+            <!-- Row 1 -->
+            <button class="btn col-span-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all" id="clear">AC</button>
+            <button class="btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all" id="clear-entry">CE</button>
+            <button class="btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all operator">÷</button>
+            
+            <!-- Row 2 -->
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">7</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">8</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">9</button>
+            <button class="btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all operator">×</button>
+            
+            <!-- Row 3 -->
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">4</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">5</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">6</button>
+            <button class="btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all operator">−</button>
+            
+            <!-- Row 4 -->
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">1</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">2</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">3</button>
+            <button class="btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all operator">+</button>
+            
+            <!-- Row 5 -->
+            <button class="btn col-span-2 bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">0</button>
+            <button class="btn bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all">.</button>
+            <button class="btn col-span-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all" id="equals">=</button>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        const expression = document.getElementById('expression');
+        const buttons = document.querySelectorAll('.btn');
+        const clearBtn = document.getElementById('clear');
+        const clearEntryBtn = document.getElementById('clear-entry');
+        const equalsBtn = document.getElementById('equals');
+
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = '';
+        let waitingForOperand = false;
+
+        // Function to update display
+        function updateDisplay() {
+            display.textContent = currentInput;
+            expression.textContent = previousInput + operator;
+        }
+
+        // Clear all
+        clearBtn.addEventListener('click', () => {
+            currentInput = '0';
+            previousInput = '';
+            operator = '';
+            waitingForOperand = false;
+            updateDisplay();
+        });
+
+        // Clear entry
+        clearEntryBtn.addEventListener('click', () => {
+            currentInput = '0';
+            updateDisplay();
+        });
+
+        // Handle button clicks
+        buttons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const value = e.target.textContent;
+                handleInput(value);
+                button.classList.remove('btn-press');
+                setTimeout(() => button.classList.add('btn-press'), 0); // Reset animation
+            });
+        });
+
+        // Handle equals
+        equalsBtn.addEventListener('click', () => {
+            calculate();
+        });
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if ((key >= '0' && key <= '9') || key === '.') {
+                handleInput(key);
+            } else if (['+', '-', '*', '/'].includes(key)) {
+                handleInput(key === '*' ? '×' : key === '/' ? '÷' : key);
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+            } else if (key === 'Backspace') {
+                currentInput = currentInput.slice(0, -1) || '0';
+                updateDisplay();
+            } else if (key === 'Escape') {
+                clearBtn.click();
+            } else if (key === 'Delete') {
+                clearEntryBtn.click();
+            }
+        });
+
+        // Main input handler
+        function handleInput(value) {
+            if (!isNaN(value) || value === '.') {
+                if (waitingForOperand) {
+                    currentInput = value;
+                    waitingForOperand = false;
+                } else {
+                    currentInput = currentInput === '0' ? value : currentInput + value;
+                }
+                updateDisplay();
+            } else if (['+', '−', '×', '÷'].includes(value)) {
+                if (currentInput !== '') {
+                    if (previousInput !== '') {
+                        calculate();
+                    }
+                    previousInput = currentInput;
+                    operator = value;
+                    waitingForOperand = true;
+                    updateDisplay();
+                }
+            }
+        }
+
+        // Calculation logic
+        function calculate() {
+            let result;
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operator) {
+                case '+':
+                    result = prev + current;
+                    break;
+                case '−':
+                    result = prev - current;
+                    break;
+                case '×':
+                    result = prev * current;
+                    break;
+                case '÷':
+                    if (current === 0) {
+                        result = 'Error';
+                    } else {
+                        result = prev / current;
+                    }
+                    break;
+                default:
+                    return;
+            }
+
+            currentInput = result.toString();
+            previousInput = '';
+            operator = '';
+            waitingForOperand = false;
+            updateDisplay();
+
+            // Animate display on result
+            display.classList.remove('display-slide');
+            setTimeout(() => display.classList.add('display-slide'), 0);
+        }
+
+        // Initial display
+        updateDisplay();
+    </script>
+</body>
+</html>
+</content>
+</create_file>
